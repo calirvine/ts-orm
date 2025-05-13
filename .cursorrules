@@ -1,0 +1,25 @@
+{
+  "interaction": {
+    "preferDirectEdits": true,
+    "explainChanges": true,
+    "confirmLargeChanges": true,
+    "maxEditSize": 100
+  },
+  "tools": {
+    "preferredSearch": "semantic",
+    "preferredEdit": "direct",
+    "preferredFileOperations": "direct"
+  },
+  "formatting": {
+    "usePrettier": true,
+    "useESLint": true
+  },
+  "documentation": {
+    "includeComments": true,
+    "preferJSDoc": true
+  },
+  "testing": {
+    "preferUnitTests": true,
+    "includeTestFiles": true
+  }
+} 

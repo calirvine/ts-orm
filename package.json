@@ -1,0 +1,15 @@
+{
+  "name": "orm",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/mysql build",
+    "test": "bun run --cwd packages/core test && bun run --cwd packages/mysql test"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0",
+    "valibot": "^1.1.0"
+  }
+}

@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Base Rules for TypeScript Library Development
+
+We are building a typescript ORM loosely based on Rails ActiveRecord and PHP Eloquent. It's going to be fun! 
+
+## Code Organization
+- Use ESM modules exclusively
+- Place source code in `packages/core/`
+- Keep the public API minimal and well-documented
+- Use barrel exports (index.ts) only for public API
+- Use bun
+
+## TypeScript Practices
+- Enable strict mode
+- Use explicit types for public APIs
+- Forbid `any` type in public interfaces
+- Use type inference for internal implementations when possible
+- Prefer interfaces over type aliases for public APIs
+
+## Module Structure
+- One class/interface per file
+- Group related functionality in directories
+- Use index files for public exports
+- Keep circular dependencies in mind
+
+## Error Handling
+- Use custom error classes for domain-specific errors
+- Include error codes for programmatic handling
+- Provide descriptive error messages
+- Document error scenarios in JSDoc
+
+## Testing
+- Write unit tests for all public APIs
+- Use vitest for testing
+- Use descriptive test names
+- Group related tests in describe blocks
+- Mock external dependencies
+
+## Documentation
+- Use JSDoc for all public APIs
+- Include examples in documentation
+- Document edge cases and limitations
+- Keep README.md up to date
+
+## Performance
+- Consider bundle size
+- Avoid unnecessary dependencies
+- Use tree-shaking friendly exports
+- Profile critical paths
+
+## Compatibility
+- Support both Node.js and Cloudflare Workers
+- Use platform-agnostic APIs when possible
+- Document platform-specific features
+- Test in both environments
+
+## Development Workflow
+- Use Prettier for formatting
+- Follow ESLint rules
+- Run tests before commits
+- Keep dependencies up to date
+
+## Versioning
+- Follow semantic versioning
+- Document breaking changes
+- Maintain changelog
+- Tag releases properly
