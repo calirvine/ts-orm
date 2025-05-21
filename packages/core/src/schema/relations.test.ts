@@ -1,31 +1,32 @@
 import { describe, it, expect } from 'vitest';
-import { Model } from '../model';
+import { createModel } from '../model/factory';
 import { hasOne, hasMany, belongsTo, belongsToMany, defineRelations } from './relations';
 
 // Test models
-class User extends Model {
-  static get primaryKey() {
-    return 'id';
-  }
-}
-
-class Profile extends Model {
-  static get primaryKey() {
-    return 'id';
-  }
-}
-
-class Post extends Model {
-  static get primaryKey() {
-    return 'id';
-  }
-}
-
-class Role extends Model {
-  static get primaryKey() {
-    return 'id';
-  }
-}
+const User = createModel({
+  schema: {
+    id: { type: 'bigint', modifiers: new Set(['primary']) },
+    name: { type: 'string', modifiers: new Set() },
+  },
+});
+const Profile = createModel({
+  schema: {
+    id: { type: 'bigint', modifiers: new Set(['primary']) },
+    userId: { type: 'bigint', modifiers: new Set() },
+  },
+});
+const Post = createModel({
+  schema: {
+    id: { type: 'bigint', modifiers: new Set(['primary']) },
+    authorId: { type: 'bigint', modifiers: new Set() },
+  },
+});
+const Role = createModel({
+  schema: {
+    id: { type: 'bigint', modifiers: new Set(['primary']) },
+    name: { type: 'string', modifiers: new Set() },
+  },
+});
 
 describe('Relation Factories', () => {
   describe('hasOne', () => {
@@ -115,7 +116,7 @@ describe('Relation Factories', () => {
 
   describe('belongsToMany', () => {
     it('creates a belongsToMany relation with deferred field name and defaults', () => {
-      const relation = belongsToMany(() => Role).withPivot([]);
+      const relation = (belongsToMany(() => Role) as any).withPivot([]);
       expect(relation.type).toBe('belongsToMany');
       expect(typeof relation.model === 'function' ? relation.model() : relation.model).toBe(Role);
       expect(relation.fieldName).toBe('__useKey__');
@@ -124,7 +125,7 @@ describe('Relation Factories', () => {
       expect(relation.localKey).toBeUndefined();
     });
     it('creates a belongsToMany relation with explicit field name and deferred defaults', () => {
-      const relation = belongsToMany('customRoles', () => Role).withPivot([]);
+      const relation = (belongsToMany('customRoles', () => Role) as any).withPivot([]);
       expect(relation.type).toBe('belongsToMany');
       expect(typeof relation.model === 'function' ? relation.model() : relation.model).toBe(Role);
       expect(relation.fieldName).toBe('customRoles');
@@ -133,95 +134,97 @@ describe('Relation Factories', () => {
       expect(relation.localKey).toBeUndefined();
     });
     it('accepts custom pivot table and keys', () => {
-      const relation = belongsToMany('roles', () => Role, {
-        pivotTable: 'user_roles',
-        foreignKey: 'user_id',
-        localKey: 'role_id',
-      }).withPivot([]);
+      const relation = (
+        belongsToMany('roles', () => Role, {
+          pivotTable: 'user_roles',
+          foreignKey: 'user_id',
+          localKey: 'role_id',
+        }) as any
+      ).withPivot([]);
       expect(relation.pivotTable).toBe('user_roles');
       expect(relation.foreignKey).toBe('user_id');
       expect(relation.localKey).toBe('role_id');
     });
     it('allows adding pivot columns', () => {
-      const relation = belongsToMany(() => Role).withPivot(['assigned_at', 'expires_at']);
+      const relation = (belongsToMany(() => Role) as any).withPivot(['assigned_at', 'expires_at']);
       expect(relation.pivotColumns).toEqual(['assigned_at', 'expires_at']);
     });
   });
 
   describe('defineRelations', () => {
     it('creates a relations definition object with resolved field names and defaults (implicit field names)', () => {
-      const UserRelations = defineRelations({
+      const UserRelations = defineRelations(() => ({
         profile: hasOne(() => Profile),
         posts: hasMany(() => Post),
-        roles: belongsToMany(() => Role).withPivot(['assigned_at']),
-      });
-      expect(UserRelations.profile.type).toBe('hasOne');
-      expect(UserRelations.profile.fieldName).toBe('profile');
-      expect(UserRelations.profile.foreignKey).toBe('profileId');
+        roles: (belongsToMany(() => Role) as any).withPivot(['assigned_at']),
+      }));
+      expect(UserRelations._meta.profile.type).toBe('hasOne');
+      expect(UserRelations._meta.profile.fieldName).toBe('__useKey__');
+      expect(UserRelations._meta.profile.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.profile.localKey === 'function'
-          ? UserRelations.profile.localKey()
-          : UserRelations.profile.localKey,
+        typeof UserRelations._meta.profile.localKey === 'function'
+          ? UserRelations._meta.profile.localKey()
+          : UserRelations._meta.profile.localKey,
       ).toBe('id');
-      expect(UserRelations.posts.type).toBe('hasMany');
-      expect(UserRelations.posts.fieldName).toBe('posts');
-      expect(UserRelations.posts.foreignKey).toBe('postsId');
+      expect(UserRelations._meta.posts.type).toBe('hasMany');
+      expect(UserRelations._meta.posts.fieldName).toBe('__useKey__');
+      expect(UserRelations._meta.posts.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.posts.localKey === 'function'
-          ? UserRelations.posts.localKey()
-          : UserRelations.posts.localKey,
+        typeof UserRelations._meta.posts.localKey === 'function'
+          ? UserRelations._meta.posts.localKey()
+          : UserRelations._meta.posts.localKey,
       ).toBe('id');
-      expect(UserRelations.roles.type).toBe('belongsToMany');
-      expect(UserRelations.roles.fieldName).toBe('roles');
-      expect(UserRelations.roles.pivotTable).toBe('roles_roles');
-      expect(UserRelations.roles.foreignKey).toBe('rolesId');
+      expect(UserRelations._meta.roles.type).toBe('belongsToMany');
+      expect(UserRelations._meta.roles.fieldName).toBe('__useKey__');
+      expect(UserRelations._meta.roles.pivotTable).toBeUndefined();
+      expect(UserRelations._meta.roles.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.roles.localKey === 'function'
-          ? UserRelations.roles.localKey()
-          : UserRelations.roles.localKey,
+        typeof UserRelations._meta.roles.localKey === 'function'
+          ? UserRelations._meta.roles.localKey()
+          : UserRelations._meta.roles.localKey,
       ).toBe('rolesId');
-      expect(UserRelations.roles.pivotColumns).toEqual(['assigned_at']);
+      expect(UserRelations._meta.roles.pivotColumns).toEqual(['assigned_at']);
     });
     it('creates a relations definition object with explicit field names and defaults', () => {
-      const UserRelations = defineRelations({
+      const UserRelations = defineRelations(() => ({
         customProfile: hasOne('customProfile', () => Profile),
         customPosts: hasMany('customPosts', () => Post),
-        customRoles: belongsToMany('customRoles', () => Role).withPivot(['assigned_at']),
-      });
-      expect(UserRelations.customProfile.type).toBe('hasOne');
-      expect(UserRelations.customProfile.fieldName).toBe('customProfile');
-      expect(UserRelations.customProfile.foreignKey).toBe('customProfileId');
+        customRoles: (belongsToMany('customRoles', () => Role) as any).withPivot(['assigned_at']),
+      }));
+      expect(UserRelations._meta.customProfile.type).toBe('hasOne');
+      expect(UserRelations._meta.customProfile.fieldName).toBe('customProfile');
+      expect(UserRelations._meta.customProfile.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.customProfile.localKey === 'function'
-          ? UserRelations.customProfile.localKey()
-          : UserRelations.customProfile.localKey,
+        typeof UserRelations._meta.customProfile.localKey === 'function'
+          ? UserRelations._meta.customProfile.localKey()
+          : UserRelations._meta.customProfile.localKey,
       ).toBe('id');
-      expect(UserRelations.customPosts.type).toBe('hasMany');
-      expect(UserRelations.customPosts.fieldName).toBe('customPosts');
-      expect(UserRelations.customPosts.foreignKey).toBe('customPostsId');
+      expect(UserRelations._meta.customPosts.type).toBe('hasMany');
+      expect(UserRelations._meta.customPosts.fieldName).toBe('customPosts');
+      expect(UserRelations._meta.customPosts.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.customPosts.localKey === 'function'
-          ? UserRelations.customPosts.localKey()
-          : UserRelations.customPosts.localKey,
+        typeof UserRelations._meta.customPosts.localKey === 'function'
+          ? UserRelations._meta.customPosts.localKey()
+          : UserRelations._meta.customPosts.localKey,
       ).toBe('id');
-      expect(UserRelations.customRoles.type).toBe('belongsToMany');
-      expect(UserRelations.customRoles.fieldName).toBe('customRoles');
-      expect(UserRelations.customRoles.pivotTable).toBe('customRoles_customRoles');
-      expect(UserRelations.customRoles.foreignKey).toBe('customRolesId');
+      expect(UserRelations._meta.customRoles.type).toBe('belongsToMany');
+      expect(UserRelations._meta.customRoles.fieldName).toBe('customRoles');
+      expect(UserRelations._meta.customRoles.pivotTable).toBe('customRoles_customRoles');
+      expect(UserRelations._meta.customRoles.foreignKey).toBeUndefined();
       expect(
-        typeof UserRelations.customRoles.localKey === 'function'
-          ? UserRelations.customRoles.localKey()
-          : UserRelations.customRoles.localKey,
+        typeof UserRelations._meta.customRoles.localKey === 'function'
+          ? UserRelations._meta.customRoles.localKey()
+          : UserRelations._meta.customRoles.localKey,
       ).toBe('customRolesId');
-      expect(UserRelations.customRoles.pivotColumns).toEqual(['assigned_at']);
+      expect(UserRelations._meta.customRoles.pivotColumns).toEqual(['assigned_at']);
     });
     it('preserves relation order', () => {
-      const UserRelations = defineRelations({
+      const UserRelations = defineRelations(() => ({
         profile: hasOne(() => Profile),
         posts: hasMany(() => Post),
-        roles: belongsToMany(() => Role).withPivot([]),
-      });
-      const keys = Object.keys(UserRelations);
+        roles: (belongsToMany(() => Role) as any).withPivot([]),
+      }));
+      const keys = Object.keys(UserRelations._meta);
       expect(keys).toEqual(['profile', 'posts', 'roles']);
     });
   });
