@@ -66,7 +66,11 @@ export interface DatabaseAdapter {
   /**
    * Execute a raw SQL query
    */
-  query<T = unknown>(sql: string, params?: unknown[]): Promise<QueryResult<T>>;
+  query<T = unknown>(
+    sql: string,
+    params?: unknown[],
+    schema?: SchemaDefinition,
+  ): Promise<QueryResult<T>>;
 
   /**
    * Begin a new transaction

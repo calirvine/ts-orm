@@ -10,6 +10,8 @@ import {
   date,
   time,
   json,
+  coerceBigintFieldValue,
+  serializeBigintFieldValue,
 } from './fields';
 
 describe('Field Factories', () => {
@@ -133,6 +135,61 @@ describe('Field Factories', () => {
       expect(field.modifiers.has('index')).toBe(true);
       expect(field.columnName).toBe('id');
       expect(field.defaultValue).toBe('123');
+    });
+  });
+});
+
+describe('Bigint Field Value Coercion', () => {
+  const numberField = bigint({ mode: 'number' }).build();
+  const bigintField = bigint({ mode: 'bigint' }).build();
+
+  describe('coerceBigintFieldValue', () => {
+    it('coerces BigInt to number in number mode', () => {
+      expect(coerceBigintFieldValue(123n, numberField)).toBe(123);
+    });
+    it('coerces string to number in number mode', () => {
+      expect(coerceBigintFieldValue('456', numberField)).toBe(456);
+    });
+    it('returns number as-is in number mode', () => {
+      expect(coerceBigintFieldValue(789, numberField)).toBe(789);
+    });
+    it('returns null for null/undefined', () => {
+      expect(coerceBigintFieldValue(null, numberField)).toBeNull();
+      expect(coerceBigintFieldValue(undefined, numberField)).toBeNull();
+    });
+    it('coerces number to BigInt in bigint mode', () => {
+      expect(coerceBigintFieldValue(123, bigintField)).toBe(123n);
+    });
+    it('coerces string to BigInt in bigint mode', () => {
+      expect(coerceBigintFieldValue('456', bigintField)).toBe(456n);
+    });
+    it('returns BigInt as-is in bigint mode', () => {
+      expect(coerceBigintFieldValue(789n, bigintField)).toBe(789n);
+    });
+  });
+
+  describe('serializeBigintFieldValue', () => {
+    it('serializes BigInt to number in number mode', () => {
+      expect(serializeBigintFieldValue(123n, numberField)).toBe(123);
+    });
+    it('serializes string to number in number mode', () => {
+      expect(serializeBigintFieldValue('456', numberField)).toBe(456);
+    });
+    it('returns number as-is in number mode', () => {
+      expect(serializeBigintFieldValue(789, numberField)).toBe(789);
+    });
+    it('returns null for null/undefined', () => {
+      expect(serializeBigintFieldValue(null, numberField)).toBeNull();
+      expect(serializeBigintFieldValue(undefined, numberField)).toBeNull();
+    });
+    it('serializes BigInt to string in bigint mode', () => {
+      expect(serializeBigintFieldValue(123n, bigintField)).toBe('123');
+    });
+    it('serializes number to string in bigint mode', () => {
+      expect(serializeBigintFieldValue(456, bigintField)).toBe('456');
+    });
+    it('returns string as-is in bigint mode', () => {
+      expect(serializeBigintFieldValue('789', bigintField)).toBe('789');
     });
   });
 });

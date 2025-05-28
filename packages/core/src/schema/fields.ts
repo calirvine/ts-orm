@@ -1,4 +1,10 @@
-import { FieldDefinition, FieldFactoryResult, FieldModifier, FieldType } from './types';
+import {
+  FieldDefinition,
+  FieldFactoryResult,
+  FieldModifier,
+  FieldType,
+  SchemaDefinition,
+} from './types';
 
 /**
  * Creates a new field definition with the given type
@@ -119,9 +125,16 @@ export function integer() {
 
 /**
  * Bigint field factory
+ *
+ * @param config - Configuration object. Supports { mode: 'number' | 'bigint' } (default: 'number').
+ *   If mode is 'number', values will be coerced to JS number type when possible.
+ * @example
+ *   bigint() // default, uses JS number
+ *   bigint({ mode: 'bigint' }) // uses JS BigInt
  */
-export function bigint() {
-  return new FieldBuilder('bigint');
+export function bigint(config?: { mode?: 'number' | 'bigint' }) {
+  const mode = config?.mode ?? 'number';
+  return new FieldBuilder('bigint').columnOptions({ mode });
 }
 
 /**
@@ -225,4 +238,82 @@ export function index<T extends FieldDefinition>(field: T): T {
 export function column<T extends FieldDefinition>(field: T, name: string): T {
   field.columnName = name;
   return field;
+}
+
+/**
+ * Coerce a value for a bigint field according to its mode (number or bigint)
+ * Used for serialization/deserialization at model/DB boundaries
+ */
+export function coerceBigintFieldValue(
+  value: unknown,
+  field: FieldDefinition,
+): number | bigint | null {
+  const mode = field.columnOptions?.mode ?? 'number';
+  if (value == null) return null;
+  if (mode === 'number') {
+    if (typeof value === 'bigint') {
+      // Optionally: check for overflow here
+      return Number(value);
+    }
+    if (typeof value === 'string' && /^\d+$/.test(value)) {
+      // DBs often return bigints as strings
+      return Number(value);
+    }
+    return value as number;
+  }
+  if (mode === 'bigint') {
+    if (typeof value === 'number') return BigInt(value);
+    if (typeof value === 'string' && /^\d+$/.test(value)) return BigInt(value);
+    return value as bigint;
+  }
+  return value as number | bigint;
+}
+
+/**
+ * Coerce a value for a bigint field for serialization (model → DB)
+ * - For 'number' mode, store as number (or string if DB requires)
+ * - For 'bigint' mode, store as string (to avoid JS BigInt issues with some drivers)
+ */
+export function serializeBigintFieldValue(
+  value: unknown,
+  field: FieldDefinition,
+): number | string | null {
+  const mode = field.columnOptions?.mode ?? 'number';
+  if (value == null) return null;
+  if (mode === 'number') {
+    if (typeof value === 'bigint') {
+      // Optionally: check for overflow here
+      return Number(value);
+    }
+    if (typeof value === 'string' && /^\d+$/.test(value)) {
+      return Number(value);
+    }
+    return value as number;
+  }
+  if (mode === 'bigint') {
+    if (typeof value === 'bigint') return value.toString();
+    if (typeof value === 'number') return BigInt(value).toString();
+    if (typeof value === 'string' && /^\d+$/.test(value)) return value;
+    return value as string;
+  }
+  return value as number | string;
+}
+
+/**
+ * Serialize a row according to schema (for DB insert/update)
+ */
+export function serializeRow(
+  row: Record<string, unknown>,
+  schema: SchemaDefinition,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key in row) {
+    const field = schema[key];
+    if (field && field.type === 'bigint') {
+      result[key] = serializeBigintFieldValue(row[key], field);
+    } else {
+      result[key] = row[key];
+    }
+  }
+  return result;
 }

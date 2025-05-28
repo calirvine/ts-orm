@@ -4,24 +4,28 @@ import { hasOne, hasMany, belongsTo, belongsToMany, defineRelations } from './re
 
 // Test models
 const User = createModel({
+  name: 'User',
   schema: {
     id: { type: 'bigint', modifiers: new Set(['primary']) },
     name: { type: 'string', modifiers: new Set() },
   },
 });
 const Profile = createModel({
+  name: 'Profile',
   schema: {
     id: { type: 'bigint', modifiers: new Set(['primary']) },
     userId: { type: 'bigint', modifiers: new Set() },
   },
 });
 const Post = createModel({
+  name: 'Post',
   schema: {
     id: { type: 'bigint', modifiers: new Set(['primary']) },
     authorId: { type: 'bigint', modifiers: new Set() },
   },
 });
 const Role = createModel({
+  name: 'Role',
   schema: {
     id: { type: 'bigint', modifiers: new Set(['primary']) },
     name: { type: 'string', modifiers: new Set() },

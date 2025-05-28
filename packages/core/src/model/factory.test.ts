@@ -31,9 +31,11 @@ const PostSchema = defineSchema({
 });
 
 class Profile extends createModel<{ id: bigint; userId: bigint; bio?: string }>({
+  name: 'Profile',
   schema: ProfileSchema,
 }) {}
 class Post extends createModel<{ id: bigint; authorId: bigint; title: string; content: string }>({
+  name: 'Post',
   schema: PostSchema,
 }) {}
 
@@ -45,6 +47,7 @@ type UserAttrs = {
 };
 
 class User extends createModel<UserAttrs>({
+  name: 'User',
   schema: UserSchema,
 }) {
   static _relationsDef = {
@@ -75,5 +78,40 @@ describe('Model Factory - Relations via relations property', () => {
     expect(await user.relations.posts()).toEqual([]);
     expect(await user.relations.profile()).toBeNull();
     expect(user.displayName).toBe('JOHN');
+  });
+});
+
+describe('Model Factory - Table name and schema consistency', () => {
+  const TableSchemaA = defineSchema({
+    id: bigint().notNull().primary().build(),
+    value: string().notNull().build(),
+  });
+  const TableSchemaB = defineSchema({
+    id: bigint().notNull().primary().build(),
+    value: string().notNull().build(), // same as A
+  });
+  const TableSchemaDifferent = defineSchema({
+    id: bigint().notNull().primary().build(),
+    value: string().notNull().build(),
+    extra: integer().build(), // extra field
+  });
+
+  it('allows multiple models with the same table name and identical schemas', () => {
+    const Base1 = createModel({ name: 'Thing', schema: TableSchemaA });
+    const Base2 = createModel({ name: 'Thing', schema: TableSchemaB });
+    expect(Base1).toBe(Base2);
+    // Subclassing still works
+    class Model1 extends Base1 {}
+    class Model2 extends Base2 {}
+    expect(Object.getPrototypeOf(Model1.prototype).constructor).toBe(Base1);
+    expect(Object.getPrototypeOf(Model2.prototype).constructor).toBe(Base2);
+  });
+
+  it('throws if schemas differ for the same table name', () => {
+    createModel({ name: 'Widget', schema: TableSchemaA });
+    expect(() => {
+      // Should throw due to schema mismatch
+      createModel({ name: 'Widget', schema: TableSchemaDifferent });
+    }).toThrow(/Model registration conflict: Table name 'Widget'/);
   });
 });
