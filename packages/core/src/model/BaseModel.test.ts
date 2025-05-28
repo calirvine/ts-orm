@@ -48,7 +48,7 @@ describe('BaseModel and Repository', () => {
   it('model static methods delegate to repository and use DB context', async () => {
     await setDbContext(mockDb, async () => {
       const user = await User.findById(1);
-      expect(user).toEqual({ id: 1, name: 'Alice' });
+      expect(user?.getAttributes()).toEqual({ id: 1, name: 'Alice' });
       expect(mockDb.selectFrom).toHaveBeenCalledWith('users');
     });
   });

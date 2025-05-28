@@ -3,6 +3,7 @@ import { FieldDefinition } from '../schema/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { BaseModel } from './BaseModel';
 import { DataRepository } from './repository';
+import { ValidationError } from '../errors/ValidationError';
 
 /**
  * Registry of all model classes
@@ -118,6 +119,20 @@ type ModelInstance<Attrs> = Attrs & {
 export function createModel<Attrs extends Record<string, unknown>>(
   options: CreateModelOptions<Attrs>,
 ) {
+  // Check for existing model class with the same name
+  if (modelRegistry.has(options.name)) {
+    const existing = modelRegistry.get(options.name);
+    // Compare schemas for equality
+    if (!schemasEqual(existing.schema, options.schema)) {
+      throw new Error(
+        `Model registration conflict: Table name '${options.name}' already exists with a different schema.`,
+      );
+    }
+    return existing as unknown as typeof ModelClassImpl & {
+      new (...args: any[]): BaseModel & Attrs;
+    };
+  }
+
   const repo = new DataRepository<Attrs>(
     options.schema,
     options.name.toLowerCase() + (options.name.endsWith('s') ? '' : 's'),
@@ -176,10 +191,19 @@ export function createModel<Attrs extends Record<string, unknown>>(
     static async delete(id: unknown, idField: string = 'id'): Promise<void> {
       await repo.delete(id, idField);
     }
+    /**
+     * Creates a new instance of the model.
+     * @param attributes - Initial attributes for the model
+     * @throws {ValidationError} If validation fails for any attribute
+     */
     constructor(attributes: Partial<Attrs> = {}) {
       super();
       this._attributes = { ...attributes };
       this._originalAttributes = { ...this._attributes };
+      const issues = this.validate();
+      if (issues.length > 0) {
+        throw new ValidationError(issues);
+      }
     }
     getAttributes(): Attrs {
       // Return a shallow copy to avoid mutation

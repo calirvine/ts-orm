@@ -26,7 +26,11 @@ const UserBase = createModel<UserAttrs>({
   schema: UserSchema,
 });
 
-class User extends UserBase {}
+class User extends UserBase {
+  static findByEmail(email: string) {
+    return this.find({ email });
+  }
+}
 
 async function main() {
   // 3. Set up DB context for this script
