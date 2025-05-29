@@ -10,6 +10,7 @@ import {
   ModelClass,
   InferRelations,
 } from '../schema/relations';
+import { createORMContext } from '../context';
 
 const UserSchema = defineSchema({
   id: bigint().notNull().primary().build(),
@@ -69,15 +70,32 @@ class User extends createModel<UserAttrs>({
 
 describe('Model Factory - Relations via relations property', () => {
   it('allows type-safe async access to relations via relations property', async () => {
-    const user = new User({ id: 1n, name: 'John', email: 'john@example.com', age: 42 });
+    const mockDb = {
+      selectFrom: () => ({
+        selectAll: () => ({
+          where: () => ({
+            execute: async () => [],
+            executeTakeFirst: async () => null,
+          }),
+        }),
+      }),
+      insertInto: () => ({}),
+      updateTable: () => ({}),
+      deleteFrom: () => ({}),
+      transaction: () => ({ execute: async (fn: any) => fn(mockDb) }),
+    };
+    const orm = createORMContext({ db: mockDb });
+    await orm.run(async () => {
+      const user = new User({ id: 1n, name: 'John', email: 'john@example.com', age: 42 });
 
-    // Type checks:
-    expectTypeOf(user.relations.posts).toEqualTypeOf<() => Promise<Post[]>>();
-    expectTypeOf(user.relations.profile).toEqualTypeOf<() => Promise<Profile | null>>();
-    // Runtime checks (demo: returns empty array/null)
-    expect(await user.relations.posts()).toEqual([]);
-    expect(await user.relations.profile()).toBeNull();
-    expect(user.displayName).toBe('JOHN');
+      // Type checks:
+      expectTypeOf(user.relations.posts).toEqualTypeOf<() => Promise<Post[]>>();
+      expectTypeOf(user.relations.profile).toEqualTypeOf<() => Promise<Profile | null>>();
+      // Runtime checks (demo: returns empty array/null)
+      expect(await user.relations.posts()).toEqual([]);
+      expect(await user.relations.profile()).toBeNull();
+      expect(user.displayName).toBe('JOHN');
+    });
   });
 });
 

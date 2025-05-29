@@ -1,20 +1,17 @@
 import { SchemaDefinition } from '../schema/types';
 
 /**
- * Database connection configuration
+ * Internal abstraction for query/transaction engine used by the ORM context.
+ * Not part of the public API.
  */
-export interface DatabaseConfig {
-  host: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-  ssl?: boolean;
-  pool?: {
-    min?: number;
-    max?: number;
-    idleTimeoutMillis?: number;
-  };
+export interface OrmQueryEngine {
+  // Minimal set of methods needed by the ORM
+  selectFrom: (...args: any[]) => any;
+  insertInto: (...args: any[]) => any;
+  updateTable: (...args: any[]) => any;
+  deleteFrom: (...args: any[]) => any;
+  transaction: (...args: any[]) => any;
+  // Add more as needed for ORM features
 }
 
 /**
@@ -36,8 +33,9 @@ export interface Transaction {
 
 /**
  * Core database adapter interface
+ * @template Config - The configuration type for the adapter
  */
-export interface DatabaseAdapter {
+export interface DatabaseAdapter<Config = unknown> {
   /**
    * Connect to the database
    */
@@ -96,4 +94,10 @@ export interface DatabaseAdapter {
    * Get the schema for a table
    */
   getTableSchema(tableName: string): Promise<SchemaDefinition>;
+
+  /**
+   * Returns the internal query engine for use by the ORM context.
+   * Not part of the public API.
+   */
+  getQueryEngine(): OrmQueryEngine;
 }

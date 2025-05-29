@@ -1,17 +1,32 @@
 import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
-import type { DatabaseAdapter, DatabaseConfig, QueryResult, Transaction } from '@orm/core';
+import type { DatabaseAdapter, QueryResult, Transaction } from '@orm/core';
 import type { SchemaDefinition } from '@orm/core';
 
-export class SqliteAdapter implements DatabaseAdapter {
+/**
+ * SQLite adapter configuration
+ */
+export interface SqliteConfig {
+  /**
+   * The SQLite database file path, or ':memory:' for in-memory
+   */
+  database: string;
+}
+
+export class SqliteAdapter implements DatabaseAdapter<SqliteConfig> {
   private db: Kysely<any>;
 
-  constructor(config: DatabaseConfig) {
+  constructor(config: SqliteConfig) {
     this.db = new Kysely({
       dialect: new SqliteDialect({
         database: new Database(config.database || ':memory:'),
       }),
     });
+  }
+
+  getQueryEngine() {
+    // Kysely implements the required OrmQueryEngine interface
+    return this.db as unknown as import('@orm/core').OrmQueryEngine;
   }
 
   async connect(): Promise<void> {}

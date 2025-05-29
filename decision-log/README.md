@@ -13,7 +13,15 @@ This directory contains the architectural decisions and design choices made for 
    - **Summary:** Evaluates three approaches for schema definition: decorator-based, factory pattern, and class factory. Selects the class factory approach for its balance of type safety, flexibility, and developer ergonomics. Documents the pros and cons of each approach and details the chosen implementation.
 
 3. [Database Layer Architecture](003-database-layer-architecture.md)
+
    - **Summary:** Establishes a database abstraction layer using the adapter pattern, with a consistent interface for all database operations. Adapters are stateless and not context-aware; all context-awareness and transaction propagation are handled at the repository/model layer using AsyncLocalStorage (ALS). All business logic and queries should go through the repository/model API, not the adapter directly. Kysely is used as the query builder for type-safe, database-agnostic SQL generation.
+
+4. [Async Context and Adapter](004-async-context-and-adapter.md)
+
+   - **Summary:** Documents the use of AsyncLocalStorage for request/transaction context, and the adapter pattern for database operations. Details how context is propagated and how adapters are integrated.
+
+5. [DataLoader Batching for ORM](005-dataloader-batching.md)
+   - **Summary:** Implements automatic batching and deduplication for repeated `findById` and `find(where)` queries within a request or transaction context, using a minimal, type-safe DataLoader utility. Maintains strict cache and transaction semantics: batching and cache are bypassed inside transactions, and cache is only invalidated on commit. No changes to the public API; DataLoader is an internal optimization. Type safety and ESM compliance are preserved.
 
 ## Purpose
 

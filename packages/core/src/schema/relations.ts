@@ -1,4 +1,5 @@
 import type { FieldDefinition } from './types';
+import { getCurrentContext } from '../context';
 
 /**
  * Types of relations supported by the ORM
@@ -243,15 +244,60 @@ export type ResolvedType<R extends RelationDefinition<any, any>> = R extends Rel
 
 // Loader function for relations (to be replaced with real ORM logic)
 export async function loadRelation(instance: any, rel: RelationDefinition): Promise<any> {
+  // Get the current query engine from context
+  const { db } = getCurrentContext();
+  // Use a type assertion to access static properties and hydrate
+  const RelatedModel = rel.model() as unknown as {
+    tableName: string;
+    schema: any;
+    primaryKey: string;
+    hydrate: (row: Record<string, unknown> | null) => any;
+  };
+  const relatedTable = RelatedModel.tableName;
+  const relatedSchema = RelatedModel.schema;
+  const relatedPrimaryKey = RelatedModel.primaryKey;
+
+  // Helper to resolve key (string or function)
+  const resolveKey = (key: string | (() => string) | undefined) =>
+    typeof key === 'function' ? key() : key;
+
   if (rel.type === 'hasMany') {
-    // In a real ORM, query the related model using the foreign key
-    // For demo, return an empty array
-    return [];
+    const foreignKey = rel.foreignKey || `${instance.constructor.tableName.slice(0, -1)}Id`;
+    const localKey = resolveKey(rel.localKey) || 'id';
+    const value = instance[localKey];
+    const rows = await db
+      .selectFrom(relatedTable)
+      .selectAll()
+      .where(foreignKey, '=', value)
+      .execute();
+    return rows.map((row: any) => RelatedModel.hydrate(row));
   }
   if (rel.type === 'hasOne') {
-    // In a real ORM, query the related model using the foreign key
-    // For demo, return null
-    return null;
+    const foreignKey = rel.foreignKey || `${instance.constructor.tableName.slice(0, -1)}Id`;
+    const localKey = resolveKey(rel.localKey) || 'id';
+    const value = instance[localKey];
+    const row = await db
+      .selectFrom(relatedTable)
+      .selectAll()
+      .where(foreignKey, '=', value)
+      .executeTakeFirst();
+    return row ? RelatedModel.hydrate(row) : null;
+  }
+  if (rel.type === 'belongsTo') {
+    const foreignKey = rel.foreignKey || `${relatedTable.slice(0, -1)}Id`;
+    const localKey = resolveKey(rel.localKey) || 'id';
+    const value = instance[foreignKey];
+    if (value == null) return null;
+    const row = await db
+      .selectFrom(relatedTable)
+      .selectAll()
+      .where(relatedPrimaryKey, '=', value)
+      .executeTakeFirst();
+    return row ? RelatedModel.hydrate(row) : null;
+  }
+  if (rel.type === 'belongsToMany') {
+    // Not implemented yet
+    return [];
   }
   return undefined;
 }

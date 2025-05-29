@@ -1,9 +1,10 @@
 import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
 import { createModel } from '../packages/core/src/model/factory';
-import { BaseModel, __testSetDbContext } from '../packages/core/src/model/BaseModel';
+import { BaseModel } from '../packages/core/src/model/BaseModel';
 import { defineSchema, InferAttrsFromSchema } from '../packages/core/src/schema/schema';
 import { string, bigint } from '../packages/core/src/schema/fields';
+import { createORMContext } from '../packages/core/src/context';
 
 // 1. Setup Kysely instance for SQLite (in-memory for demo)
 const db = new Kysely({
@@ -33,8 +34,9 @@ class User extends UserBase {
 }
 
 async function main() {
-  // 3. Set up DB context for this script
-  await __testSetDbContext(db, async () => {
+  // 3. Set up ORM context for this script
+  const orm = createORMContext({ db });
+  await orm.run(async () => {
     // 4. Create table (raw for demo)
     await db.schema
       .createTable('users')
